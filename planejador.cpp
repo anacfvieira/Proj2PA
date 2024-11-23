@@ -141,8 +141,7 @@ bool Planejador::ler(const std::string& arq_pontos,
 
     // Leh o cabecalho
     getline(arq,prov);
-    if (arq.fail() ||
-        prov != "ID;Nome;Latitude;Longitude") throw 2;
+    if (arq.fail() || prov != "ID;Nome;Latitude;Longitude") throw 2;
 
     // Leh os pontos
     do
@@ -171,7 +170,7 @@ bool Planejador::ler(const std::string& arq_pontos,
       // Verifica se jah existe ponto com a mesma ID no conteiner de pontos lidos (listP)
       // Caso exista, throw 8
       /* feito */
-      auto itr_idponto = find(listP.begin(), listP.end(), P.id);
+      auto itr_idponto = find(listP.begin(), listP.end(), P);
       if (itr_idponto != listP.end()) throw 8;
 
       // Inclui o ponto na lista de pontos
@@ -295,6 +294,7 @@ public:
   bool operator==(const IDPonto& Id) const { return id_pt == Id; }
   bool operator==(const IDRota& Id) const { return id_rt == Id; }
   bool operator==(const Noh& N) const { return id_pt == N.id_pt; }
+  bool operator<(const Noh& N) const { return f() < N.f(); }
 };
 /// Calcula o caminho entre a origem e o destino do planejador usando o algoritmo A*
 /// Retorna o comprimento do caminho encontrado.
@@ -357,6 +357,7 @@ double Planejador::calculaCaminho(const IDPonto& id_origem,
           //Busca rota-suc de atual
           itr_rotaalg = find(itr_rotaalg, rotas.end(), atual.id_rt);
           if (itr_rotaalg != rotas.end()) {
+
             //Gera noh sucessor
             Noh suc(itr_rotaalg->extremidade[1], IDRota(), atual.g + itr_rotaalg->comprimento, haversine(getPonto(atual.id_pt), getPonto(itr_rotaalg->extremidade[1])));
 
@@ -388,10 +389,7 @@ double Planejador::calculaCaminho(const IDPonto& id_origem,
             }
             if (inedito) {
             //Acha o primeiro noh de aberto com f() maior que o de "suc"
-            auto big = aberto.begin();
-            while (big != aberto.end() && big->f() < suc.f()) {
-              big++;
-            }
+            auto big = upper_bound(aberto.begin(), aberto.end(), suc);
 
             //Insere "suc" em aberto
             aberto.insert(big, suc);
