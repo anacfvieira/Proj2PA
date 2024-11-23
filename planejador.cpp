@@ -293,9 +293,8 @@ public:
   double f() const { return g + h; }
 
   bool operator==(const IDPonto& Id) const { return id_pt == Id; }
+  bool operator==(const IDRota& Id) const { return id_rt == Id; }
   bool operator==(const Noh& N) const { return id_pt == N.id_pt; }
-  bool operator<(const Noh& N) const { return f() < N.f(); }
-  bool operator>(const Noh& N) const { return f() > N.f(); }
 };
 /// Calcula o caminho entre a origem e o destino do planejador usando o algoritmo A*
 /// Retorna o comprimento do caminho encontrado.
@@ -339,6 +338,8 @@ double Planejador::calculaCaminho(const IDPonto& id_origem,
 
     // Inicializa os conjuntos de aberto e fechado
     list<Noh> aberto, fechado;
+    //Inclui atual em aberto
+    aberto.push_back(atual);
 
     do {
       //Lê e exclui o primeiro elemento do conjunto aberto
@@ -357,7 +358,7 @@ double Planejador::calculaCaminho(const IDPonto& id_origem,
           itr_rotaalg = find(itr_rotaalg, rotas.end(), atual.id_rt);
           if (itr_rotaalg != rotas.end()) {
             //Gera noh sucessor
-            Noh suc(itr_rotaalg->extremidade[1], IDRota(), atual.g + itr_rotaalg->comprimento, haversine(getPonto(atual.id), getPonto(itr_rotaalg->extremidade[1])));
+            Noh suc(itr_rotaalg->extremidade[1], IDRota(), atual.g + itr_rotaalg->comprimento, haversine(getPonto(atual.id_pt), getPonto(itr_rotaalg->extremidade[1])));
 
             //Ponto do noh sucessor
              Ponto pt_suc = getPonto(suc.id_pt);
@@ -401,6 +402,42 @@ double Planejador::calculaCaminho(const IDPonto& id_origem,
       
       }
     } while ((!aberto.empty() && atual.id_pt != id_destino));
+
+    //Calcula n de nohs da busca
+    NA = aberto.size();
+    NF = fechado.size();
+
+    //caminho vazio
+    C.clear();
+
+    //Encontrou soluçao ou nao?
+    if (atual.id_pt != id_destino) {
+      //Nao encontrou
+      double comprimento =  -1.0;
+      return comprimento;
+    }
+
+    else {
+      //Encontrou
+      double comprimento = atual.g;
+      //Reconstroi o caminho procurando nohs antecessores em fechado
+      while (atual.id_rt != IDRota()) {
+        //Acrescenta par atual no topo de C
+        C.push_front(make_pair(atual.id_rt, atual.id_pt));
+
+        //Recupera o antecessor
+        auto itr_ant = find(fechado.begin(), fechado.end(), atual.id_rt);
+        IDPonto id_pt_ant = itr_ant->id_pt;
+        
+        //Procura por noh igual a id_pt_ant em fechado
+        atual = *find(fechado.begin(), fechado.end(), id_pt_ant);
+      }
+
+      //Acrescenta o ponto inicial no topo de C
+      C.push_front(make_pair(IDRota(), id_origem));
+
+      return comprimento;
+    }
 
     // O try tem que terminar retornando o comprimento calculado
     return -1.0;  // SUBSTITUA pelo return do valor correto
